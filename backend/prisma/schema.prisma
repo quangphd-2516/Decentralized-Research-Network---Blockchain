@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  username      String    @unique
+  passwordHash  String    @map("password_hash")
+  publicKey     String?   @map("public_key")
+  privateKeyEnc String?   @map("private_key_encrypted")
+  
+  researches    Research[]
+  accessGrants  AccessGrant[]
+  
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Research {
+  id            String    @id @default(uuid())
+  title         String
+  description   String?
+  ipfsHash      String    @map("ipfs_hash")
+  encryptedKey  String    @map("encrypted_key")
+  
+  authorId      String    @map("author_id")
+  author        User      @relation(fields: [authorId], references: [id])
+  
+  category      String?
+  tags          String[]
+  isPublic      Boolean   @default(false) @map("is_public")
+  
+  accessGrants  AccessGrant[]
+  transactions  Transaction[]
+  
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("researches")
+  @@index([authorId])
+  @@index([ipfsHash])
+}
+
+model AccessGrant {
+  id            String    @id @default(uuid())
+  
+  researchId    String    @map("research_id")
+  research      Research  @relation(fields: [researchId], references: [id], onDelete: Cascade)
+  
+  userId        String    @map("user_id")
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  decryptionKey String    @map("decryption_key")
+  
+  grantedAt     DateTime  @default(now()) @map("granted_at")
+  expiresAt     DateTime? @map("expires_at")
+
+  @@map("access_grants")
+  @@unique([researchId, userId])
+  @@index([userId])
+}
+
+model Transaction {
+  id            String    @id @default(uuid())
+  
+  researchId    String    @map("research_id")
+  research      Research  @relation(fields: [researchId], references: [id])
+  
+  txType        String    @map("tx_type")
+  txHash        String?   @map("tx_hash")
+  
+  metadata      Json?
+  
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@map("transactions")
+  @@index([researchId])
+}

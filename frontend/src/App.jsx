@@ -14,7 +14,9 @@ import RegisterPage from '@/pages/RegisterPage';
 import UploadPage from '@/pages/UploadPage';
 import ResearchListPage from '@/pages/ResearchListPage';
 import ResearchDetailPage from '@/pages/ResearchDetailPage';
-// import ProfilePage from '@/pages/ProfilePage'; // Sẽ làm ở Sprint 3
+import ProfilePage from '@/pages/ProfilePage';
+import ManageAccessPage from '@/pages/ManageAccessPage';
+
 // Protected Route Component
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -81,16 +83,25 @@ function App() {
               <Route path="/research/:id" element={<ResearchDetailPage />} />
 
               {/* Profile - Sẽ làm ở Sprint 3 */}
-              {/* 
+              {
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <ProfilePage />
+                    </ProtectedRoute>
+                  }
+                />
+              }
+              {/* Manage Access (Protected) */}
               <Route
-                path="/profile"
+                path="/research/:id/manage"
                 element={
                   <ProtectedRoute>
-                    <ProfilePage />
+                    <ManageAccessPage />
                   </ProtectedRoute>
                 }
               />
-              */}
 
               {/* 404 */}
               <Route path="*" element={<Navigate to="/" />} />

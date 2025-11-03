@@ -101,4 +101,13 @@ export const researchService = {
         const response = await api.get(`/research/${id}/access-list`);
         return response.data;
     },
+    /**
+   * Lấy researches được share cho mình
+   * @returns {Promise}
+   */
+    getAccessedResearches: async () => {
+        const response = await api.get('/research/accessed');
+        return response.data;
+    },
+
 };

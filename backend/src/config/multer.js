@@ -22,15 +22,28 @@ const storage = multer.diskStorage({
 
 // File filter
 const fileFilter = (req, file, cb) => {
-    const allowedTypes = /pdf|doc|docx|txt|zip|rar/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    const allowedExtensions = [
+        '.pdf', '.doc', '.docx', '.txt', '.zip', '.rar',
+    ];
+    const allowedMimes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain',
+        'application/zip',
+        'application/x-zip-compressed',
+        'application/vnd.rar',
+        'application/x-rar-compressed',
+    ];
 
-    if (mimetype && extname) {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const hasAllowedExt = allowedExtensions.includes(ext);
+    const hasAllowedMime = allowedMimes.includes(file.mimetype);
+
+    if (hasAllowedExt && hasAllowedMime) {
         return cb(null, true);
-    } else {
-        cb(new Error('Chỉ chấp nhận file: PDF, DOC, DOCX, TXT, ZIP, RAR'));
     }
+    return cb(new Error('Chỉ chấp nhận file: PDF, DOC, DOCX, TXT, ZIP, RAR'));
 };
 
 const upload = multer({

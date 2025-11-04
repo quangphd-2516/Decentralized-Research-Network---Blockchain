@@ -38,6 +38,7 @@ router.get('/routes', (req, res) => {
                 'POST /api/research/:id/revoke': 'Revoke access (protected)',
                 'GET /api/research/:id/download': 'Download file (protected)',
                 'GET /api/research/:id/access-list': 'Get access list (protected)',
+                'GET /api/research/accessed': 'Get researches shared with me (protected)',
             },
         },
     });

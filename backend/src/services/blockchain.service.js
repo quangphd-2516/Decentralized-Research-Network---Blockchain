@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 
 // Simple contract ABI (chỉ cần function registerResearch)
 const CONTRACT_ABI = [
-    'function registerResearch(string ipfsHash, string title, address author) public returns (uint256)',
+    'function registerResearch(string ipfsHash, string title) public returns (uint256)',
     'function getResearch(uint256 id) public view returns (string, string, address, uint256)',
 ];
 
@@ -29,11 +29,19 @@ export const blockchainService = {
      * @param {string} authorAddress
      * @returns {Promise<string>} - Transaction hash
      */
-    registerResearch: async (ipfsHash, title, authorAddress) => {
+    registerResearch: async (ipfsHash, title) => {
         try {
             const contract = blockchainService.getContract();
-            const tx = await contract.registerResearch(ipfsHash, title, authorAddress);
+            // Log ra để kiểm tra giá trị trước khi gửi lên blockchain
+            console.log('--- Blockchain Registration Info ---');
+            console.log('IPFS Hash:', ipfsHash);
+            console.log('Title:', title);
+            //console.log('Author Address:', authorAddress);
+            console.log('-----------------------------------');
+            const tx = await contract.registerResearch(ipfsHash, title);
             const receipt = await tx.wait();
+
+
             return receipt.hash;
         } catch (error) {
             console.error('Blockchain registration failed:', error);

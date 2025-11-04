@@ -1,91 +1,67 @@
 // src/services/encryption.service.js
-import CryptoJS from 'crypto-js';
 import crypto from 'crypto';
 import fs from 'fs';
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+const ENCRYPTION_KEY = Buffer.from(process.env.ENCRYPTION_KEY, 'utf8').slice(0, 32); // 32 bytes key cho AES-256
+const IV_LENGTH = 16; // 16 bytes cho AES
 
 export const encryptionService = {
-    /**
-     * Generate random AES key
-     */
-    generateAESKey: () => {
-        return crypto.randomBytes(32).toString('hex');
-    },
+    // Tạo AES key ngẫu nhiên
+    generateAESKey: () => crypto.randomBytes(32).toString('hex'),
 
-    /**
-     * Encrypt file với AES-256
-     * @param {string} filePath - Path to file
-     * @param {string} aesKey - AES key
-     * @returns {Buffer} - Encrypted file data
-     */
+    // Mã hóa file nhị phân dùng AES-256-CBC
     encryptFile: (filePath, aesKey) => {
         try {
             const fileBuffer = fs.readFileSync(filePath);
-            const encrypted = CryptoJS.AES.encrypt(
-                fileBuffer.toString('base64'),
-                aesKey
-            ).toString();
-            return Buffer.from(encrypted);
+            const iv = crypto.randomBytes(IV_LENGTH);
+            const key = Buffer.from(aesKey, 'hex');
+            const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+            const encrypted = Buffer.concat([cipher.update(fileBuffer), cipher.final()]);
+            return Buffer.concat([iv, encrypted]); // prepend IV để giải mã
         } catch (error) {
             throw new Error('Encryption failed: ' + error.message);
         }
     },
 
-    /**
-     * Decrypt file
-     * @param {Buffer} encryptedData - Encrypted file data
-     * @param {string} aesKey - AES key
-     * @returns {Buffer} - Decrypted file data
-     */
+    // Giải mã file
     decryptFile: (encryptedData, aesKey) => {
         try {
-            const decrypted = CryptoJS.AES.decrypt(
-                encryptedData.toString(),
-                aesKey
-            );
-            const base64Data = decrypted.toString(CryptoJS.enc.Utf8);
-            return Buffer.from(base64Data, 'base64');
+            const key = Buffer.from(aesKey, 'hex');
+            const iv = encryptedData.subarray(0, IV_LENGTH);
+            const data = encryptedData.subarray(IV_LENGTH);
+            const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+            const decrypted = Buffer.concat([decipher.update(data), decipher.final()]);
+            return decrypted;
         } catch (error) {
             throw new Error('Decryption failed: ' + error.message);
         }
     },
 
-    /**
-     * Encrypt AES key với master key (simple approach)
-     * Trong production nên dùng RSA public/private key của user
-     * @param {string} aesKey
-     * @returns {string}
-     */
+    // Mã hóa AES key bằng master key
     encryptKey: (aesKey) => {
-        return CryptoJS.AES.encrypt(aesKey, ENCRYPTION_KEY).toString();
+        const cipher = crypto.createCipheriv(
+            'aes-256-cbc',
+            ENCRYPTION_KEY,
+            Buffer.alloc(IV_LENGTH, 0)
+        );
+        const encrypted = Buffer.concat([
+            cipher.update(aesKey, 'utf8'),
+            cipher.final(),
+        ]);
+        return encrypted.toString('base64');
     },
 
-    /**
-     * Decrypt AES key
-     * @param {string} encryptedKey
-     * @returns {string}
-     */
+    // Giải mã AES key
     decryptKey: (encryptedKey) => {
-        const bytes = CryptoJS.AES.decrypt(encryptedKey, ENCRYPTION_KEY);
-        return bytes.toString(CryptoJS.enc.Utf8);
-    },
-
-    /**
-     * Generate RSA key pair cho user (BONUS - for future)
-     */
-    generateRSAKeyPair: () => {
-        const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
-            modulusLength: 2048,
-            publicKeyEncoding: {
-                type: 'spki',
-                format: 'pem',
-            },
-            privateKeyEncoding: {
-                type: 'pkcs8',
-                format: 'pem',
-            },
-        });
-        return { publicKey, privateKey };
+        const decipher = crypto.createDecipheriv(
+            'aes-256-cbc',
+            ENCRYPTION_KEY,
+            Buffer.alloc(IV_LENGTH, 0)
+        );
+        const decrypted = Buffer.concat([
+            decipher.update(Buffer.from(encryptedKey, 'base64')),
+            decipher.final(),
+        ]);
+        return decrypted.toString('utf8');
     },
 };

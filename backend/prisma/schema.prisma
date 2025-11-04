@@ -33,6 +33,8 @@ model Research {
   
   authorId      String    @map("author_id")
   author        User      @relation(fields: [authorId], references: [id])
+  fileName      String?   
+  mimeType      String?   
   
   category      String?
   tags          String[]

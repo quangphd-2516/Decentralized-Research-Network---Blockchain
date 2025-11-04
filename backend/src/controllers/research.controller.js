@@ -46,6 +46,8 @@ export const uploadResearch = async (req, res) => {
                 ipfsHash,
                 encryptedKey,
                 authorId: req.userId,
+                fileName: file.originalname,
+                mimeType: file.mimetype,
             },
             include: {
                 author: {
@@ -60,7 +62,7 @@ export const uploadResearch = async (req, res) => {
 
         // 6. Register on blockchain (non-blocking)
         blockchainService
-            .registerResearch(ipfsHash, title, req.userId)
+            .registerResearch(ipfsHash, title)
             .then((txHash) => {
                 if (txHash) {
                     // Save transaction
@@ -300,15 +302,38 @@ export const downloadResearch = async (req, res) => {
         console.log('Decrypting file...');
         const decryptedBuffer = encryptionService.decryptFile(encryptedBuffer, aesKey);
 
-        // 4. Send file
-        res.setHeader('Content-Type', 'application/octet-stream');
-        res.setHeader('Content-Disposition', `attachment; filename="${research.title}.pdf"`);
-        res.send(decryptedBuffer);
+        // 🧩 Thêm 2 dòng này
+        console.log('MIME:', research.mimeType);
+        console.log('File name:', research.fileName);
+
+        // ⚠️ Thêm 2 dòng dưới đây để tắt cache trình duyệt
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('Pragma', 'no-cache');
+
+        // ✅ 4. Gửi file với đúng tên và MIME gốc
+        // Expose headers so frontend can read filename and type over CORS
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, Content-Type');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Type', research.mimeType || 'application/octet-stream');
+        res.setHeader('Content-Transfer-Encoding', 'binary');
+        res.setHeader('Content-Length', Buffer.byteLength(decryptedBuffer));
+        // ⚠️ Đảm bảo tên file an toàn, có phần mở rộng đúng
+        const safeFileName = (research.fileName || research.title)
+            .replace(/[^a-zA-Z0-9._-]/g, '_'); // loại bỏ ký tự đặc biệt
+        // Thêm RFC5987 để tương thích tên file Unicode trên nhiều trình duyệt
+        const encodedFileName = encodeURIComponent(safeFileName).replace(/\*/g, '%2A');
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="${safeFileName}"; filename*=UTF-8''${encodedFileName}`
+        );
+
+        res.end(decryptedBuffer);
     } catch (error) {
         console.error('Download error:', error);
         return errorResponse(res, 'Không thể tải file: ' + error.message, 500);
     }
 };
+
 
 export const grantAccess = async (req, res) => {
     try {
@@ -434,7 +459,7 @@ export const getAccessList = async (req, res) => {
         return errorResponse(res, 'Lỗi server', 500);
     }
 };
-
+// Lấy các research mà user được grant access
 export const getAccessedResearches = async (req, res) => {
     try {
         // Lấy các research mà user được grant access

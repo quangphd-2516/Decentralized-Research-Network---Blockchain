@@ -57,13 +57,13 @@ export default function ResearchDetailPage() {
         setDownloading(true);
         try {
             // GỌI SERVICE TRỰC TIẾP
-            const blob = await researchService.downloadResearch(id);
+            const { blob, filename } = await researchService.downloadResearch(id);
 
             // Create download link
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${research.title}.pdf`;
+            a.download = filename || research.fileName || `${research.title}`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);

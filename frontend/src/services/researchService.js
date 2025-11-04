@@ -89,7 +89,20 @@ export const researchService = {
         const response = await api.get(`/research/${id}/download`, {
             responseType: 'blob',
         });
-        return response.data;
+
+        // Extract filename from Content-Disposition
+        const disposition = response.headers?.['content-disposition'] || '';
+        let filename = `research-${id}`;
+        const cdMatch = disposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+        if (cdMatch) {
+            filename = decodeURIComponent(cdMatch[1] || cdMatch[2]);
+        }
+
+        // Preserve MIME from server
+        const contentType = response.headers?.['content-type'] || 'application/octet-stream';
+        const blob = new Blob([response.data], { type: contentType });
+
+        return { blob, filename };
     },
 
     /**

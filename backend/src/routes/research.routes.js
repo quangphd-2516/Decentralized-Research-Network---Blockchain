@@ -20,7 +20,7 @@ const router = express.Router();
 router.get('/', getResearchList);
 router.get('/my', authenticate, getMyResearches);
 router.get('/accessed', authenticate, getAccessedResearches);
-router.get('/:id', getResearchById);
+router.get('/:id', authenticate, getResearchById);
 
 // Protected routes
 router.post('/upload', authenticate, upload.single('file'), uploadResearch);

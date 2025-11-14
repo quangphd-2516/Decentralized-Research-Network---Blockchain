@@ -36,6 +36,8 @@ export default function ResearchDetailPage() {
         setLoading(true);
         try {
             const response = await researchService.getResearchById(id);
+            console.log('🔍 Full response:', response); // ← THÊM DÒNG NÀY
+            console.log('🔍 research.hasAccess:', response.data.research.hasAccess);
             setResearch(response.data.research);
         } catch (error) {
             console.error('Fetch error:', error);
@@ -104,7 +106,8 @@ export default function ResearchDetailPage() {
     if (!research) return null;
 
     const isOwner = user && user.id === research.authorId;
-    const canAccess = research.isPublic || isOwner; // TODO: Check AccessGrant
+    // ✅ Dùng hasAccess từ backend (đã tính AccessGrant)
+    const canAccess = research.hasAccess;
 
     return (
         <div className="min-h-screen bg-gray-50">

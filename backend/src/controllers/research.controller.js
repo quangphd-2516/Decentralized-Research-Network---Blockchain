@@ -188,17 +188,24 @@ export const getResearchById = async (req, res) => {
         }
 
         // Check access permission
-        const hasAccess =
-            research.isPublic ||
-            research.authorId === req.userId ||
-            (req.userId &&
-                (await prisma.accessGrant.findFirst({
-                    where: {
-                        researchId: id,
-                        userId: req.userId,
-                    },
-                })));
+        // Check access permission - FIXED
+        let hasAccess = research.isPublic || research.authorId === req.userId;
+        console.log('🔍 req.userId:', req.userId); // ← THÊM DÒNG NÀY
+        console.log('🔍 research.authorId:', research.authorId); // ← THÊM DÒNG NÀY
+        console.log('🔍 research.isPublic:', research.isPublic);
 
+        // Kiểm tra xem user có trong AccessGrant không
+        if (!hasAccess && req.userId) {
+            const accessGrant = await prisma.accessGrant.findFirst({
+                where: {
+                    researchId: id,
+                    userId: req.userId,
+                },
+            });
+            console.log('🔍 accessGrant:', accessGrant);
+            hasAccess = !!accessGrant;
+        }
+        console.log('🔍 Final hasAccess:', hasAccess);
         // Add txHash to response
         const txHash = research.transactions[0]?.txHash || null;
 
@@ -206,7 +213,7 @@ export const getResearchById = async (req, res) => {
             research: {
                 ...research,
                 txHash,
-                hasAccess,
+                hasAccess, // Backend đã tính sẵn
             },
         });
     } catch (error) {
